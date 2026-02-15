@@ -22,7 +22,7 @@ from telegram.ext import (
 )
 
 # ================= CONFIG =================
-BOT_TOKEN = os.getenv("8237376549:AAFxiKB_6aBuqnPZLBz17HuZYl4-PMTm8WQ")
+BOT_TOKEN = os.getenv("8237376549:AAGd5ldO4SIHnIaPr6J7AdhUKIaM_-wd0G8")
 OWNER_ID = int(os.getenv("6548935235", "0"))
 VERIFY_TIMEOUT = 60  # seconds before auto kick
 RAID_LIMIT = 5       # users within 10 sec triggers raid alert
