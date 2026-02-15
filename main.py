@@ -20,7 +20,7 @@ from telegram.ext import (
 
 # ================= CONFIG =================
 BOT_TOKEN = "8237376549:AAGd5ldO4SIHnIaPr6J7AdhUKIaM_-wd0G8"
-OWNER_ID = 6548935235  # <-- PUT YOUR TELEGRAM ID HERE
+OWNER_ID = 6548935235  # <-- PASTE YOUR TELEGRAM ID HERE
 VERIFY_TIMEOUT = 60
 RAID_LIMIT = 5
 
@@ -33,8 +33,8 @@ join_tracker = []
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private":
         await update.message.reply_text(
-            "🤖 Advanced Verification Bot is Running!\n\n"
-            "Add me to a group and give me admin (with restrict permission)."
+            "🤖 Verifier Bot is Running!\n\n"
+            "Add me to a group and give admin (with restrict permission)."
         )
 
 # ================= NEW MEMBER =================
@@ -43,7 +43,7 @@ async def new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id = update.effective_chat.id
         user_id = member.id
 
-        # Anti-raid detection
+        # Anti raid detection
         join_tracker.append(datetime.now())
         join_tracker[:] = [
             t for t in join_tracker
@@ -59,14 +59,12 @@ async def new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-        # Restrict user
         await context.bot.restrict_chat_member(
             chat_id,
             user_id,
             ChatPermissions(can_send_messages=False)
         )
 
-        # Generate math question
         a = random.randint(1, 15)
         b = random.randint(1, 15)
         answer = a + b
@@ -76,30 +74,26 @@ async def new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "chat_id": chat_id
         }
 
-        keyboard = [
-            [
-                InlineKeyboardButton(str(answer), callback_data=f"verify_{user_id}_{answer}"),
-                InlineKeyboardButton(str(answer + 2), callback_data=f"verify_{user_id}_{answer + 2}")
-            ]
-        ]
+        keyboard = [[
+            InlineKeyboardButton(str(answer), callback_data=f"v_{user_id}_{answer}"),
+            InlineKeyboardButton(str(answer + 2), callback_data=f"v_{user_id}_{answer + 2}")
+        ]]
 
         await update.message.reply_text(
             f"👋 Welcome {member.first_name}\n\n"
-            f"Solve to verify:\n\n"
-            f"{a} + {b} = ?\n\n"
+            f"Solve to verify:\n{a} + {b} = ?\n\n"
             f"You have {VERIFY_TIMEOUT} seconds.",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-        asyncio.create_task(verify_timeout(context, user_id))
+        asyncio.create_task(timeout_task(context, user_id))
 
 # ================= TIMEOUT =================
-async def verify_timeout(context, user_id):
+async def timeout_task(context, user_id):
     await asyncio.sleep(VERIFY_TIMEOUT)
 
     if user_id in verification_data:
-        data = verification_data[user_id]
-        chat_id = data["chat_id"]
+        chat_id = verification_data[user_id]["chat_id"]
 
         try:
             await context.bot.ban_chat_member(chat_id, user_id)
@@ -109,14 +103,8 @@ async def verify_timeout(context, user_id):
                 chat_id,
                 "❌ User failed verification and was removed."
             )
-
-            await context.bot.send_message(
-                OWNER_ID,
-                f"❌ User {user_id} auto-kicked (failed verification)."
-            )
-
-        except Exception as e:
-            logging.error(e)
+        except:
+            pass
 
         verification_data.pop(user_id, None)
 
@@ -125,9 +113,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    data = query.data.split("_")
-    user_id = int(data[1])
-    chosen = int(data[2])
+    _, user_id, chosen = query.data.split("_")
+    user_id = int(user_id)
+    chosen = int(chosen)
 
     if query.from_user.id != user_id:
         await query.answer("❌ Not your verification!", show_alert=True)
@@ -150,18 +138,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         )
 
-        await query.edit_message_text("✅ VERIFIED SUCCESSFULLY!")
-
-        try:
-            await context.bot.send_message(
-                OWNER_ID,
-                f"✅ User {user_id} verified successfully."
-            )
-        except:
-            pass
-
+        await query.edit_message_text("✅ VERIFIED!")
         verification_data.pop(user_id, None)
-
     else:
         await query.answer("❌ Wrong answer!", show_alert=True)
 
@@ -173,7 +151,7 @@ def main():
     app.add_handler(CallbackQueryHandler(button))
     app.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, new_member))
 
-    print("Verifier Bot Running...")
+    print("Bot Running...")
     app.run_polling()
 
 if __name__ == "__main__":
